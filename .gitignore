@@ -24,3 +24,5 @@ build/
 # Misc
 node_modules/
 .env
+*.tar.gz
+*.zip

@@ -1,0 +1,26 @@
+# Python Virtual Environments
+test_env/
+venv/
+env/
+.env/
+__pycache__/
+*.pyc
+
+# AI Models & Weights
+*.gguf
+*.bin
+*.pth
+*.pt
+
+# Compiled TS/JS
+dist/
+build/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+
+# Misc
+node_modules/
+.env

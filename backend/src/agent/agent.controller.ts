@@ -25,7 +25,7 @@ export class AgentController {
     if (model === 'claude') {
       return new ChatAnthropic({
         modelName: 'claude-3-opus-20240229',
-        anthropicApiKey: 'dummy-api-key',
+        anthropicApiKey: process.env.ANTHROPIC_API_KEY,
         temperature: 0,
         maxRetries: 0,
       });
@@ -43,7 +43,7 @@ export class AgentController {
       // Default to Gemini
       return new ChatGoogleGenerativeAI({
         model: 'gemini-flash-lite-latest',
-        apiKey: 'AQ.Ab8RN6IJul0tsncKXX2EryY3F2SKIvLMIzkw8yoFXCV5e2aRPw',
+        apiKey: process.env.GEMINI_API_KEY,
         temperature: 0,
         maxRetries: 0,
       });

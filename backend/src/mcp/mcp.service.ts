@@ -7,6 +7,12 @@ import { PrismaService } from '../prisma.service';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import * as crypto from 'crypto';
+import axios from 'axios';
+import PDFDocument from 'pdfkit';
 
 @Injectable()
 export class McpService implements OnModuleInit {
@@ -69,6 +75,14 @@ export class McpService implements OnModuleInit {
               priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional().describe('Priority (LOW, MEDIUM, HIGH, URGENT)'),
               authorId: z.number().describe('ID of the user creating the ticket'),
               assigneeId: z.number().optional().describe('Optional User ID of the assignee'),
+            })) as any,
+          },
+          {
+            name: 'generate_pie_chart_pdf',
+            description: 'Generates a PDF pie chart using the provided labels and data numbers, and returns a download link for the user.',
+            inputSchema: zodToJsonSchema(z.object({
+              labels: z.array(z.string()).describe('Array of label strings (e.g. ["OPEN", "CLOSED"])'),
+              data: z.array(z.number()).describe('Array of data numbers corresponding to the labels (e.g. [5, 2])')
             })) as any,
           },
         ],
@@ -141,6 +155,48 @@ export class McpService implements OnModuleInit {
         const ticket = await this.ticketService.create({ title, description, priority, authorId, assigneeId });
         return {
           content: [{ type: 'text', text: `Successfully created ticket #${ticket.id} "${title}"` }],
+        };
+      }
+      if (request.params.name === 'generate_pie_chart_pdf') {
+        const labels = request.params.arguments?.labels as string[];
+        const data = request.params.arguments?.data as number[];
+        
+        if (!labels || !data || labels.length !== data.length) {
+           return { content: [{ type: 'text', text: 'Error: labels and data must be arrays of the same length.' }] };
+        }
+
+        const chartConfig = {
+          type: 'pie',
+          data: {
+            labels: labels,
+            datasets: [{ data: data }]
+          },
+          options: { plugins: { title: { display: true, text: 'Report' } } }
+        };
+
+        const chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}&w=500&h=300`;
+        const imageRes = await axios.get(chartUrl, { responseType: 'arraybuffer' });
+        const imageBuffer = Buffer.from(imageRes.data);
+
+        const fileId = crypto.randomUUID();
+        const filename = `report_${fileId}.pdf`;
+        const pdfPath = path.join(os.tmpdir(), filename);
+        
+        await new Promise<void>((resolve, reject) => {
+          const doc = new PDFDocument();
+          const writeStream = fs.createWriteStream(pdfPath);
+          doc.pipe(writeStream);
+          doc.fontSize(20).text('Generated Pie Chart Report', { align: 'center' });
+          doc.moveDown();
+          doc.image(imageBuffer, { fit: [400, 300], align: 'center', valign: 'center' });
+          doc.end();
+          writeStream.on('finish', resolve);
+          writeStream.on('error', reject);
+        });
+
+        const downloadLink = `http://localhost:3000/mcp/download/${filename}`;
+        return {
+          content: [{ type: 'text', text: `Success. Tell the user they can download the PDF here: [Download PDF Report](${downloadLink})` }],
         };
       }
       throw new Error('Tool not found');

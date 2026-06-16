@@ -96,8 +96,9 @@ export default function Chat() {
                 borderRadius: 2,
                 bgcolor: msg.role === 'user' ? 'primary.dark' : 'rgba(255,255,255,0.05)',
                 color: 'white',
+                overflowX: 'auto',
               }}>
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {msg.content}
                 </Typography>
               </Paper>

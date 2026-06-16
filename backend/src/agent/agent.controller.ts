@@ -42,7 +42,7 @@ export class AgentController {
     } else {
       // Default to Gemini
       return new ChatGoogleGenerativeAI({
-        model: 'gemini-flash-lite-latest',
+        model: 'gemini-2.0-flash',
         apiKey: process.env.GEMINI_API_KEY,
         temperature: 0,
         maxRetries: 0,
@@ -87,6 +87,10 @@ export class AgentController {
           priority: z.string().optional(), 
           authorId: z.number().optional(), 
           assigneeId: z.number().optional() 
+        });
+        if (tool.name === 'generate_pie_chart_pdf') schema = z.object({
+          labels: z.array(z.string()),
+          data: z.array(z.number())
         });
 
         return new DynamicStructuredTool({
@@ -142,6 +146,11 @@ EXAMPLE 3 - Editing ONLY the assignee:
 EXAMPLE 4 - Editing ONLY the status and priority:
 [{"name": "edit_ticket", "args": {"id": 1, "status": "CLOSED", "priority": "LOW"}}]
 
+EXAMPLE 5 - Generating a PDF report of tickets:
+1. First, call list_tickets: [{"name": "list_tickets", "args": {}}]
+2. Once you get the result, count the statuses yourself.
+3. Then call the PDF tool: [{"name": "generate_pie_chart_pdf", "args": {"labels": ["OPEN", "CLOSED"], "data": [3, 2]}}]
+
 If you need to assign a ticket to an IT Admin, you must FIRST call list_users to find their ID. Do not call create_ticket until you know the assigneeId!
 `;
       }
@@ -159,8 +168,39 @@ If you need to assign a ticket to an IT Admin, you must FIRST call list_users to
         
         // Manual parsing for LLaMA model
         if (isLlama && typeof response.content === 'string') {
-          const startIdx = response.content.indexOf('[');
-          const endIdx = response.content.lastIndexOf(']');
+          // Only attempt to parse if we see what looks like an array of JSON objects
+          const startIdx = response.content.indexOf('[{');
+          let endIdx = -1;
+          let depth = 0;
+          let inString = false;
+          let escape = false;
+
+          if (startIdx !== -1) {
+            for (let i = startIdx; i < response.content.length; i++) {
+              const char = response.content[i];
+              if (escape) {
+                escape = false;
+                continue;
+              }
+              if (char === '\\') {
+                escape = true;
+                continue;
+              }
+              if (char === '"') {
+                inString = !inString;
+              }
+              if (!inString) {
+                if (char === '[') depth++;
+                if (char === ']') {
+                  depth--;
+                  if (depth === 0) {
+                    endIdx = i;
+                    break;
+                  }
+                }
+              }
+            }
+          }
           
           if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
             let contentStr = response.content.substring(startIdx, endIdx + 1);
@@ -168,16 +208,7 @@ If you need to assign a ticket to an IT Admin, you must FIRST call list_users to
             try {
               parsed = JSON.parse(contentStr);
             } catch (e) {
-              // Attempt to repair common LLaMA hallucination: missing outer brace
-              if (contentStr.endsWith('}]') && !contentStr.endsWith('}}]')) {
-                try {
-                  parsed = JSON.parse(contentStr.replace(/}\]$/, '}}]'));
-                } catch (e2) {
-                  console.log("Failed to repair LLaMA manual tool call:", contentStr);
-                }
-              } else {
-                console.log("Failed to parse LLaMA manual tool call:", contentStr);
-              }
+              console.log("Failed to parse LLaMA manual tool call:", contentStr);
             }
 
           if (parsed && Array.isArray(parsed)) {

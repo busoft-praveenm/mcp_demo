@@ -53,7 +53,7 @@ export default function Tickets() {
               <TableCell>Status</TableCell>
               <TableCell>Priority</TableCell>
               <TableCell>Created</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              {/* <TableCell align="right">Actions</TableCell> */}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -85,8 +85,8 @@ export default function Tickets() {
                       size="small"
                       value={ticket.status}
                       onChange={(e) => handleStatusChange(ticket.id, e.target.value)}
-                      sx={{ 
-                        fontSize: '0.8rem', 
+                      sx={{
+                        fontSize: '0.8rem',
                         height: 32,
                         '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' }
                       }}
@@ -101,11 +101,11 @@ export default function Tickets() {
                     <Chip size="small" label={ticket.priority} color={getPriorityColor(ticket.priority) as any} />
                   </TableCell>
                   <TableCell>{new Date(ticket.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell align="right">
+                  {/* <TableCell align="right">
                     <IconButton color="primary">
                       <VisibilityIcon />
                     </IconButton>
-                  </TableCell>
+                  </TableCell> */}
                 </TableRow>
               ))
             )}

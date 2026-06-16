@@ -5,6 +5,8 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { TicketService } from '../ticket/ticket.service';
 import { PrismaService } from '../prisma.service';
 import type { Request, Response } from 'express';
+import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
 @Injectable()
 export class McpService implements OnModuleInit {
@@ -32,60 +34,42 @@ export class McpService implements OnModuleInit {
           {
             name: 'list_tickets',
             description: 'Get a list of all tickets',
-            inputSchema: {
-              type: 'object',
-              properties: {},
-            },
+            inputSchema: zodToJsonSchema(z.object({})) as any,
           },
           {
             name: 'list_users',
             description: 'Get a list of all users to identify their IDs and roles',
-            inputSchema: {
-              type: 'object',
-              properties: {},
-            },
+            inputSchema: zodToJsonSchema(z.object({})) as any,
           },
           {
             name: 'get_ticket',
             description: 'Get details of a specific ticket',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                id: { type: 'number', description: 'Ticket ID' },
-              },
-              required: ['id'],
-            },
+            inputSchema: zodToJsonSchema(z.object({
+              id: z.number().describe('Ticket ID'),
+            })) as any,
           },
           {
             name: 'edit_ticket',
             description: 'Edit a ticket. Only provide the fields you explicitly want to change. Others will be kept the same.',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                id: { type: 'number', description: 'Ticket ID' },
-                title: { type: 'string', description: 'New Title' },
-                description: { type: 'string', description: 'New Description' },
-                status: { type: 'string', description: 'New Status (OPEN, IN_PROGRESS, RESOLVED, CLOSED)' },
-                priority: { type: 'string', description: 'New Priority (LOW, MEDIUM, HIGH, URGENT)' },
-                assigneeId: { type: 'number', description: 'New User ID of the assignee' },
-              },
-              required: ['id'],
-            },
+            inputSchema: zodToJsonSchema(z.object({
+              id: z.number().describe('Ticket ID'),
+              title: z.string().optional().describe('New Title'),
+              description: z.string().optional().describe('New Description'),
+              status: z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']).optional().describe('New Status (OPEN, IN_PROGRESS, RESOLVED, CLOSED)'),
+              priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional().describe('New Priority (LOW, MEDIUM, HIGH, URGENT)'),
+              assigneeId: z.number().optional().describe('New User ID of the assignee'),
+            })) as any,
           },
           {
             name: 'create_ticket',
             description: 'Create a new ticket',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                title: { type: 'string', description: 'Title of the ticket' },
-                description: { type: 'string', description: 'Description of the issue' },
-                priority: { type: 'string', description: 'Priority (LOW, MEDIUM, HIGH, URGENT)' },
-                authorId: { type: 'number', description: 'ID of the user creating the ticket' },
-                assigneeId: { type: 'number', description: 'Optional User ID of the assignee' }
-              },
-              required: ['title', 'description', 'authorId'],
-            },
+            inputSchema: zodToJsonSchema(z.object({
+              title: z.string().describe('Title of the ticket'),
+              description: z.string().describe('Description of the issue'),
+              priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional().describe('Priority (LOW, MEDIUM, HIGH, URGENT)'),
+              authorId: z.number().describe('ID of the user creating the ticket'),
+              assigneeId: z.number().optional().describe('Optional User ID of the assignee'),
+            })) as any,
           },
         ],
       };
